@@ -12,12 +12,13 @@ GameObject:
   - component: {fileID: 5305219954197348489}
   - component: {fileID: 6647113243113781804}
   - component: {fileID: 7193930321648010872}
-  - component: {fileID: 4225815454823694169}
   - component: {fileID: 8453165358534572667}
   - component: {fileID: -8255068072051943883}
+  - component: {fileID: -7891199958522606500}
+  - component: {fileID: 3259966526635966657}
   m_Layer: 5
   m_Name: Book 1
-  m_TagString: Item
+  m_TagString: Collectible
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -91,19 +92,6 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!114 &4225815454823694169
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3762824103290049582}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8251b552305a50f41be9790a0f2eee04, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ID: 0
 --- !u!212 &8453165358534572667
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -191,3 +179,30 @@ CircleCollider2D:
   m_Offset: {x: 0, y: 0}
   serializedVersion: 2
   m_Radius: 0.08
+--- !u!114 &-7891199958522606500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3762824103290049582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6605f4ebe0f34d40a461640395d8a28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ID: 0
+  Name: Thank you!
+  Text: thank you for playing my game Mr Douglas! i hope you enjoy it :)
+--- !u!114 &3259966526635966657
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3762824103290049582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e193b96892e4524abb4921b4708bb0f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
