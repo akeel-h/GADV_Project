@@ -37,6 +37,7 @@ public class CollectibleController : MonoBehaviour
             if (slot != null && slot.currentItem == null)
             {
                 GameObject newCollectible = Instantiate(collectiblePrefabs, slot.transform);
+                newCollectible.transform.localScale = Vector3.one * 1f;
                 newCollectible.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
                 slot.currentItem = newCollectible;
                 return true;
