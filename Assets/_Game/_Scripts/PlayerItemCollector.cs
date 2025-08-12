@@ -13,12 +13,12 @@ public class PlayerItemCollector : MonoBehaviour
         collectibleController = FindObjectOfType<CollectibleController>();
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
+    private void OnTriggerStay2D(Collider2D collision)
     {
         if(collision.CompareTag("Item"))
         {
             Item item = collision.GetComponent<Item>();
-            if(item != null)
+            if(item != null && Input.GetKeyDown(KeyCode.F))
             {
                 bool itemAdded = inventoryController.AddItem(collision.gameObject);
 
@@ -32,7 +32,7 @@ public class PlayerItemCollector : MonoBehaviour
         if (collision.CompareTag("Collectible"))
         {
             Collectible collectible = collision.GetComponent<Collectible>();
-            if (collectible != null)
+            if (collectible != null && Input.GetKeyDown(KeyCode.F))
             {
                 bool collectibleAdded = collectibleController.AddCollectible(collision.gameObject);
 

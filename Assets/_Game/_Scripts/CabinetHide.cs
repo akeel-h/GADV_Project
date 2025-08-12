@@ -43,6 +43,7 @@ public class CabinetHide : MonoBehaviour
     IEnumerator EnterCabinetSequence()
     {
         isHiding = true;
+        PlayerHideState.IsHiding = true;
         monsterSeen = false;
 
         // Fade to black
@@ -75,6 +76,7 @@ public class CabinetHide : MonoBehaviour
 
         player.SetActive(true);
         isHiding = false;
+        PlayerHideState.IsHiding = false;
 
         // Fade from black
         yield return StartCoroutine(Fade(0));
