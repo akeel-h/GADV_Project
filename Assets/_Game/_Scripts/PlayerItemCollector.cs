@@ -24,6 +24,7 @@ public class PlayerItemCollector : MonoBehaviour
 
                 if (itemAdded)
                 {
+                    Debug.Log("itemadd");
                     Destroy(collision.gameObject);
                 }
             }

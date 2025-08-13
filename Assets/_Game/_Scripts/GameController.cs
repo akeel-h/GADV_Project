@@ -13,7 +13,6 @@ public class GameManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
-            
         }
         else
         {
@@ -53,6 +52,7 @@ public class GameManager : MonoBehaviour
 
     public void ReturnToMainMenu()
     {
+        Time.timeScale = 1f;
         SceneManager.LoadScene(0);
     }
 }

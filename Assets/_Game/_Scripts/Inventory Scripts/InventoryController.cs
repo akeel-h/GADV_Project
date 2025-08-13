@@ -29,14 +29,15 @@ public class InventoryController : MonoBehaviour
         }
     }
 
-    public bool AddItem(GameObject itemPrefab)
+    public bool AddItem(GameObject itemPrefabs)
     {
-        foreach(Transform slotTransform in inventoryPanel.transform)
+        foreach (Transform slotTransform in inventoryPanel.transform)
         {
             Slot slot = slotTransform.GetComponent<Slot>();
             if (slot != null && slot.currentItem == null)
             {
-                GameObject newItem = Instantiate(itemPrefab, slot.transform);
+                GameObject newItem = Instantiate(itemPrefabs, slot.transform);
+                newItem.transform.localScale = Vector3.one;
                 newItem.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
                 slot.currentItem = newItem;
                 return true;
