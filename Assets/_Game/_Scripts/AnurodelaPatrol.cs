@@ -105,17 +105,29 @@ public class EnemyPatrol : MonoBehaviour
         rb.MovePosition(newPos);
 
         SetAnimation(direction);
-
-        if (direction.x < 0) spriteRenderer.flipX = false;
-        else if (direction.x > 0) spriteRenderer.flipX = true;
     }
+
+    private Vector2 lastMoveDir = Vector2.down; // default facing down
 
     void SetAnimation(Vector2 direction)
     {
-        animator.SetFloat("InputX", direction.x);
-        animator.SetFloat("InputY", direction.y);
+        if (direction.sqrMagnitude > 0.001f) // moving
+        {
+            lastMoveDir = direction;
+            animator.SetFloat("InputX", direction.x);
+            animator.SetFloat("InputY", direction.y);
+        }
+        else // idle, keep last direction
+        {
+            animator.SetFloat("InputX", lastMoveDir.x);
+            animator.SetFloat("InputY", lastMoveDir.y);
+        }
+
         animator.SetFloat("Speed", direction.magnitude);
     }
+
+
+
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
