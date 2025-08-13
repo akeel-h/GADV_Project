@@ -6,26 +6,32 @@ public class PlayerItemCollector : MonoBehaviour
 {
     private InventoryController inventoryController;
     private CollectibleController collectibleController;
-    // Start is called before the first frame update
+
+    private HashSet<GameObject> pickedUpObjects = new HashSet<GameObject>();
+
     void Start()
     {
         inventoryController = FindObjectOfType<InventoryController>();
         collectibleController = FindObjectOfType<CollectibleController>();
     }
 
-    private void OnTriggerStay2D(Collider2D collision)
+    private void OnTriggerEnter2D(Collider2D collision)
     {
-        if(collision.CompareTag("Item"))
+        if (pickedUpObjects.Contains(collision.gameObject)) return;
+        pickedUpObjects.Add(collision.gameObject);
+
+        if (collision.CompareTag("Item"))
         {
             Item item = collision.GetComponent<Item>();
-            if(item != null && Input.GetKeyDown(KeyCode.F))
+            if (item != null)
             {
                 bool itemAdded = inventoryController.AddItem(collision.gameObject);
 
                 if (itemAdded)
                 {
-                    Debug.Log("itemadd");
+                    item.Pickup();
                     Destroy(collision.gameObject);
+                    Debug.Log("Pickup triggered by " + collision.name + " at " + Time.time);
                 }
             }
         }
@@ -33,15 +39,22 @@ public class PlayerItemCollector : MonoBehaviour
         if (collision.CompareTag("Collectible"))
         {
             Collectible collectible = collision.GetComponent<Collectible>();
-            if (collectible != null && Input.GetKeyDown(KeyCode.F))
+            if (collectible != null)
             {
                 bool collectibleAdded = collectibleController.AddCollectible(collision.gameObject);
 
                 if (collectibleAdded)
                 {
+                    collectible.Pickup();
                     Destroy(collision.gameObject);
+                    Debug.Log("Pickup triggered by " + collision.name + " at " + Time.time);
                 }
             }
         }
+    }
+
+    private void LateUpdate()
+    {
+        pickedUpObjects.Clear();
     }
 }

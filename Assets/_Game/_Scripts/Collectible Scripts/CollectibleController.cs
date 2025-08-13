@@ -48,4 +48,12 @@ public class CollectibleController : MonoBehaviour
         return false;
 
     }
+
+    public GameObject GetCollectiblePrefabFromDictionary(int id)
+    {
+        if (collectibleDictionary == null) collectibleDictionary = FindObjectOfType<CollectibleDictionary>();
+
+        return collectibleDictionary.GetCollectiblePrefab(id);
+    }
+
 }

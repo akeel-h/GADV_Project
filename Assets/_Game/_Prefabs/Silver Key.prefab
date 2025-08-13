@@ -177,7 +177,7 @@ CircleCollider2D:
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
   serializedVersion: 2
-  m_Radius: 1
+  m_Radius: 0.5
 --- !u!114 &3536123329147637051
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -190,4 +190,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8251b552305a50f41be9790a0f2eee04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ID: 0
+  ID: 1
+  Name: Silver Key

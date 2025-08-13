@@ -44,10 +44,4 @@ public class Chest : MonoBehaviour, IInteractable
             GetComponent<SpriteRenderer>().sprite = openedSprite;
         }
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }
