@@ -2,9 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MenuController : MonoBehaviour
+public class UIController : MonoBehaviour
 {
     public GameObject menuCanvas;
+    public GameObject deathScreen;
     private CollectibleUIManager bookUI;
 
     void Start()
@@ -22,5 +23,10 @@ public class MenuController : MonoBehaviour
 
             menuCanvas.SetActive(!menuCanvas.activeSelf);
         }
+    }
+
+    public void ShowDeathScreen()
+    {
+        deathScreen.SetActive(true);
     }
 }

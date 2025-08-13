@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    public float moveSpeed = 5f;
+    public float moveSpeed = 2f;
+    public float sprintSpeed = 3f;
     private Rigidbody2D rb;
     private Vector2 moveInput;
     private Animator animator;
@@ -41,6 +42,18 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        rb.velocity = moveInput * moveSpeed;
+        float currentSpeed = moveSpeed;
+
+        if (Input.GetKey(KeyCode.LeftShift))
+        {
+            currentSpeed = sprintSpeed;
+            animator.speed = 1f * (sprintSpeed / moveSpeed);
+        }
+        else
+        {
+            animator.speed = 1f;
+        }
+
+            rb.velocity = moveInput * currentSpeed;
     }
 }

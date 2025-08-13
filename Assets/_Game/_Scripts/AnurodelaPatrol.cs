@@ -51,7 +51,7 @@ public class EnemyPatrol : MonoBehaviour
     {
         if (playerDetected)
         {
-            animator.speed = 1.5f;
+            animator.speed = 1f * (chaseSpeed / patrolSpeed);
             MoveTowards(player.position, chaseSpeed);
         }
         else
@@ -116,4 +116,12 @@ public class EnemyPatrol : MonoBehaviour
         animator.SetFloat("InputY", direction.y);
         animator.SetFloat("Speed", direction.magnitude);
     }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Player"))
+        {
+            GameManager.Instance.PlayerDied(collision.gameObject);
+        }
+    }                
 }
