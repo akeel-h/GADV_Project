@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class EnemyPatrol : MonoBehaviour
+public class AnurodelaPatrol : MonoBehaviour
 {
     public float detectionRange = 5f;
     public float patrolSpeed = 0.4f;
