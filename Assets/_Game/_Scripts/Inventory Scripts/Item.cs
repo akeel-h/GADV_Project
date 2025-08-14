@@ -7,7 +7,7 @@ public class Item : MonoBehaviour
 {
     public int ID;
     public string Name;
-
+    public float sanityReduction;
     public virtual void Pickup()
     {
         Sprite itemIcon = GetComponent<Image>().sprite;

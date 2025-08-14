@@ -6,34 +6,36 @@ public class CabinetHide : MonoBehaviour
 {
     public KeyCode interactKey = KeyCode.E;
     public GameObject player;
-    public GameObject hideImageCanvas; // Canvas or panel for the cabinet view
+    public GameObject hideImageCanvas; // Canvas for hiding view
 
     [Header("Safe/Empty View")]
     public Image safeImageDisplay;
     public Sprite[] emptyImages;
 
-    [Header("Monster View (Sprite Animation)")]
+    [Header("Monster View")]
     public Image monsterImageDisplay;
     public Sprite[] monsterFrames;
-    public float monsterFrameTime = 0.1f; // Time per frame
+    public float monsterFrameTime = 0.1f;
 
     [Header("Transition")]
     public Sprite[] transitionFrames;
     public float transitionFrameTime = 0.1f;
-
 
     [Header("Detection")]
     public Transform monster;
     public float monsterDetectRange = 5f;
 
     [Header("Fade Settings")]
-    public Image fadeImage;       // Fullscreen black UI Image
+    public Image fadeImage;
     public float fadeDuration = 0.5f;
+
+    [Header("Sanity System")]
+    public SanitySystem sanitySystem;
 
     private bool isNearCabinet = false;
     private bool isHiding = false;
-
     private Coroutine monsterCoroutine;
+    private Coroutine monsterSanityCoroutine;
 
     private enum CabinetState { Safe, Monster, TransitionToSafe }
     private CabinetState currentState = CabinetState.Safe;
@@ -41,31 +43,35 @@ public class CabinetHide : MonoBehaviour
     void Update()
     {
         if (isNearCabinet && !isHiding && Input.GetKeyDown(interactKey))
-        {
             StartCoroutine(EnterCabinetSequence());
-        }
         else if (isHiding && Input.GetKeyDown(interactKey))
-        {
             StartCoroutine(ExitCabinetSequence());
+    }
+
+    private IEnumerator MonsterSanityRoutine(float sanityPerTick, float tickInterval)
+    {
+        while (true)
+        {
+            sanitySystem?.OnMonsterEncounter(sanityPerTick);
+            yield return new WaitForSeconds(tickInterval);
         }
     }
+
 
     IEnumerator EnterCabinetSequence()
     {
         isHiding = true;
-        PlayerHideState.IsHiding = true;
+        PlayerHideState.IsHiding = true;  // <-- set hiding state
+        sanitySystem?.OnStartHiding();
 
         // Fade to black
         yield return StartCoroutine(Fade(1));
 
-        // Hide player, show cabinet UI
         player.SetActive(false);
         hideImageCanvas.SetActive(true);
 
-        // Fade back in
         yield return StartCoroutine(Fade(0));
 
-        // Start in safe state
         currentState = CabinetState.Safe;
         safeImageDisplay.gameObject.SetActive(true);
         monsterImageDisplay.gameObject.SetActive(false);
@@ -78,7 +84,6 @@ public class CabinetHide : MonoBehaviour
             {
                 if (currentState != CabinetState.Monster)
                 {
-                    // Monster just appeared
                     currentState = CabinetState.Monster;
 
                     safeImageDisplay.gameObject.SetActive(false);
@@ -88,32 +93,27 @@ public class CabinetHide : MonoBehaviour
                         StopCoroutine(monsterCoroutine);
 
                     monsterCoroutine = StartCoroutine(PlayMonsterAnimation());
+
+                    if (monsterSanityCoroutine == null)
+                        monsterSanityCoroutine = StartCoroutine(MonsterSanityRoutine(5f, 1f));
                 }
             }
             else
             {
                 if (currentState == CabinetState.Monster)
                 {
-                    // Monster just left start transition
                     currentState = CabinetState.TransitionToSafe;
 
                     if (monsterCoroutine != null)
-                    {
                         StopCoroutine(monsterCoroutine);
-                        monsterCoroutine = null;
-                    }
 
                     monsterCoroutine = StartCoroutine(PlayTransitionAnimation());
-                }
-                else if (currentState == CabinetState.TransitionToSafe)
-                {
-                    // Do nothing, wait for transition coroutine
-                }
-                else if (currentState == CabinetState.Safe)
-                {
-                    // Safe image shows if no monster nearby
-                    safeImageDisplay.gameObject.SetActive(true);
-                    monsterImageDisplay.gameObject.SetActive(false);
+
+                    if (monsterSanityCoroutine != null)
+                    {
+                        StopCoroutine(monsterSanityCoroutine);
+                        monsterSanityCoroutine = null;
+                    }
                 }
             }
 
@@ -121,66 +121,48 @@ public class CabinetHide : MonoBehaviour
         }
     }
 
-    IEnumerator PlayMonsterAnimation()
-    {
-        // Play monster frames once
-        for (int i = 0; i < monsterFrames.Length; i++)
-        {
-            monsterImageDisplay.sprite = monsterFrames[i];
-            yield return new WaitForSeconds(monsterFrameTime);
-        }
-
-        // Stay on last frame until monster leaves
-        monsterImageDisplay.sprite = monsterFrames[monsterFrames.Length - 1];
-
-        monsterCoroutine = null;
-    }
-
-    IEnumerator PlayTransitionAnimation()
-    {
-        // Play transition frames once
-        for (int i = 0; i < transitionFrames.Length; i++)
-        {
-            monsterImageDisplay.sprite = transitionFrames[i];
-            monsterImageDisplay.gameObject.SetActive(true);
-            safeImageDisplay.gameObject.SetActive(false);
-            yield return new WaitForSeconds(transitionFrameTime);
-        }
-
-        // Transition finished show safe image
-        currentState = CabinetState.Safe;
-        monsterImageDisplay.gameObject.SetActive(false);
-        safeImageDisplay.gameObject.SetActive(true);
-
-        monsterCoroutine = null;
-    }
-
-
-
-
-
-
-
     IEnumerator ExitCabinetSequence()
     {
-        // Fade to black
         yield return StartCoroutine(Fade(1));
 
         hideImageCanvas.SetActive(false);
         player.SetActive(true);
         isHiding = false;
-        PlayerHideState.IsHiding = false;
+        PlayerHideState.IsHiding = false;  // <-- unset hiding state
+        sanitySystem?.OnStopHiding();
 
-        // Fade from black
         yield return StartCoroutine(Fade(0));
     }
 
-    void ShowEmptyImage()
-    {
-        safeImageDisplay.gameObject.SetActive(true);
-        monsterImageDisplay.gameObject.SetActive(false);
 
-        safeImageDisplay.sprite = emptyImages[Random.Range(0, emptyImages.Length)];
+    IEnumerator PlayMonsterAnimation()
+    {
+        for (int frameIndex = 0; frameIndex < monsterFrames.Length; frameIndex++)
+        {
+            monsterImageDisplay.sprite = monsterFrames[frameIndex];
+            yield return new WaitForSeconds(monsterFrameTime);
+        }
+
+        // Hold the last frame
+        monsterImageDisplay.sprite = monsterFrames[monsterFrames.Length - 1];
+        monsterCoroutine = null;
+    }
+
+
+    IEnumerator PlayTransitionAnimation()
+    {
+        foreach (var frame in transitionFrames)
+        {
+            monsterImageDisplay.sprite = frame;
+            monsterImageDisplay.gameObject.SetActive(true);
+            safeImageDisplay.gameObject.SetActive(false);
+            yield return new WaitForSeconds(transitionFrameTime);
+        }
+
+        currentState = CabinetState.Safe;
+        monsterImageDisplay.gameObject.SetActive(false);
+        safeImageDisplay.gameObject.SetActive(true);
+        monsterCoroutine = null;  // <-- make sure this is set
     }
 
     bool IsMonsterNearby()
@@ -194,13 +176,12 @@ public class CabinetHide : MonoBehaviour
     {
         Color c = fadeImage.color;
         float startAlpha = c.a;
-        float t = 0;
+        float t = 0f;
 
         while (t < fadeDuration)
         {
             t += Time.deltaTime;
-            float blend = t / fadeDuration;
-            c.a = Mathf.Lerp(startAlpha, targetAlpha, blend);
+            c.a = Mathf.Lerp(startAlpha, targetAlpha, t / fadeDuration);
             fadeImage.color = c;
             yield return null;
         }

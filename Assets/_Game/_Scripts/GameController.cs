@@ -1,12 +1,14 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using TMPro;
 
-public class GameManager : MonoBehaviour
+public class GameController : MonoBehaviour
 {
-    public static GameManager Instance;
+    public static GameController Instance;
 
     [Header("UI")]
     public GameObject deathScreen;
+    public TMP_Text deathMessageText;
 
     private void Awake()
     {
@@ -20,23 +22,32 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void PlayerDied(GameObject player)
+    public void PlayerDied(GameObject player, string reason = "default")
     {
-        PlayerMovement pm = player.GetComponent<PlayerMovement>();
-        if (pm != null)
-            pm.enabled = false;
-
-        Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
-        if (rb != null)
-            rb.velocity = Vector2.zero;
-
+        // Show the death screen
         deathScreen.SetActive(true);
-        Debug.Log("Screen");
-        
 
-        Debug.Log("Player die");
-        Time.timeScale = 0f;
+        // Update the message
+        if (deathMessageText != null)
+        {
+            switch (reason)
+            {
+                case "stress":
+                    deathMessageText.text = "stay tough. there aren't any pleasant sights.";
+                    break;
+                case "enemy":
+                    deathMessageText.text = "watch where you step next time.";
+                    break;
+                default:
+                    deathMessageText.text = "You died!";
+                    break;
+            }
+        }
+
+        // Disable player
+        player.SetActive(false);
     }
+
 
     public void RestartScene()
     {

@@ -178,7 +178,8 @@ public class AnurodelaPatrol : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Player"))
         {
-            GameManager.Instance.PlayerDied(collision.gameObject);
+            GameController.Instance.PlayerDied(collision.gameObject, "enemy");
         }
-    }                
+    }
+
 }

@@ -9,10 +9,16 @@ public class PlayerItemCollector : MonoBehaviour
 
     private HashSet<GameObject> pickedUpObjects = new HashSet<GameObject>();
 
+    public SanitySystem sanitySystem; // Reference to the player's sanity system
+
     void Start()
     {
         inventoryController = FindObjectOfType<InventoryController>();
         collectibleController = FindObjectOfType<CollectibleController>();
+
+        // Optional: automatically find the sanity system if not assigned
+        if (sanitySystem == null)
+            sanitySystem = FindObjectOfType<SanitySystem>();
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -30,6 +36,14 @@ public class PlayerItemCollector : MonoBehaviour
                 if (itemAdded)
                 {
                     item.Pickup();
+
+                    // Apply sanity reduction if item has a sanity effect
+                    if (sanitySystem != null && item.sanityReduction > 0f)
+                    {
+                        sanitySystem.ReduceSanity(item.sanityReduction);
+                        Debug.Log($"Sanity reduced by {item.sanityReduction} from {collision.name}");
+                    }
+
                     Destroy(collision.gameObject);
                     Debug.Log("Pickup triggered by " + collision.name + " at " + Time.time);
                 }
