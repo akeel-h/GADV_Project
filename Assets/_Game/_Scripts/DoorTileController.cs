@@ -1,27 +1,31 @@
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using TMPro;
+using System.Collections.Generic;
 
 public class DoorTileController : MonoBehaviour
 {
+    public enum DoorOrientation { Vertical, Horizontal }
+
     [Header("Tilemap Settings")]
     public Tilemap tilemap;
-    public TileBase closedDoorTileBottom;
-    public TileBase closedDoorTileMiddle;
-    public TileBase closedDoorTileTop;
-    public TileBase openDoorTileBottom;
-    public TileBase openDoorTileMiddle;
-    public TileBase openDoorTileTop;
-    public Vector3Int doorBottomPosition;
+    [Tooltip("Tiles in order from bottom/left to top/right")]
+    public List<TileBase> closedDoorTiles;
+    public List<TileBase> openDoorTiles;
+    public Vector3Int doorBottomPosition; // Starting position of the first tile
+    public DoorOrientation orientation = DoorOrientation.Vertical;
 
     [Header("UI Prompt")]
     public TextMeshProUGUI promptText;
 
     [Header("Door Settings")]
-    public int requiredItemID = 1; // ID of Silver Key in ItemDictionary
+    [Tooltip("IDs of items required to open this door")]
+    public List<int> requiredItemIDs = new List<int>();
 
     private bool playerNear = false;
     private bool isDoorOpen = false;
+
+    public ItemDictionary itemDictionary;
 
     void Start()
     {
@@ -34,15 +38,16 @@ public class DoorTileController : MonoBehaviour
         if (playerNear && !isDoorOpen && Input.GetKeyDown(KeyCode.F))
         {
             InventoryController inventory = InventoryController.Instance;
-            if (inventory != null && HasItem(inventory, requiredItemID))
+            if (inventory != null && HasAllItems(inventory, requiredItemIDs))
             {
                 OpenDoor();
-                RemoveItem(inventory, requiredItemID);
+                RemoveItems(inventory, requiredItemIDs);
                 if (promptText != null) promptText.text = "";
             }
             else
             {
-                if (promptText != null) promptText.text = "A Silver Key is required";
+                if (promptText != null)
+                    promptText.text = GetRequiredItemsText();
             }
         }
     }
@@ -67,14 +72,29 @@ public class DoorTileController : MonoBehaviour
 
     void OpenDoor()
     {
-        Vector3Int middlePos = doorBottomPosition + new Vector3Int(0, 1, 0);
-        Vector3Int topPos = doorBottomPosition + new Vector3Int(0, 2, 0);
+        for (int i = 0; i < openDoorTiles.Count; i++)
+        {
+            Vector3Int tilePos = doorBottomPosition;
+            if (orientation == DoorOrientation.Vertical)
+                tilePos += new Vector3Int(0, i, 0);
+            else
+                tilePos += new Vector3Int(i, 0, 0);
 
-        tilemap.SetTile(doorBottomPosition, openDoorTileBottom);
-        tilemap.SetTile(middlePos, openDoorTileMiddle);
-        tilemap.SetTile(topPos, openDoorTileTop);
+            if (i < openDoorTiles.Count)
+                tilemap.SetTile(tilePos, openDoorTiles[i]);
+        }
 
         isDoorOpen = true;
+    }
+
+    bool HasAllItems(InventoryController inventory, List<int> itemIDs)
+    {
+        foreach (int id in itemIDs)
+        {
+            if (!HasItem(inventory, id))
+                return false;
+        }
+        return true;
     }
 
     bool HasItem(InventoryController inventory, int itemID)
@@ -92,11 +112,11 @@ public class DoorTileController : MonoBehaviour
         return false;
     }
 
-    public bool IsDoorOpen()
+    void RemoveItems(InventoryController inventory, List<int> itemIDs)
     {
-        return isDoorOpen;
+        foreach (int id in itemIDs)
+            RemoveItem(inventory, id);
     }
-
 
     void RemoveItem(InventoryController inventory, int itemID)
     {
@@ -114,5 +134,19 @@ public class DoorTileController : MonoBehaviour
                 }
             }
         }
+    }
+
+    public bool IsDoorOpen() => isDoorOpen;
+
+    string GetRequiredItemsText()
+    {
+        List<string> itemNames = new List<string>();
+        foreach (int id in requiredItemIDs)
+        {
+            GameObject prefab = itemDictionary.GetItemPrefab(id);
+            if (prefab != null)
+                itemNames.Add(prefab.name);
+        }
+        return string.Join(" + ", itemNames) + " required";
     }
 }

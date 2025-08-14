@@ -6,14 +6,21 @@ public class CabinetHide : MonoBehaviour
 {
     public KeyCode interactKey = KeyCode.E;
     public GameObject player;
-    public GameObject hideImageCanvas; // Canvas with first-person sprite
-    public Image hideImageDisplay;     // Image to show sprite
-    public float transitionDelay = 1f;
-    public float imageDisplayTime = 2f;
+    public GameObject hideImageCanvas; // Canvas or panel for the cabinet view
 
-    [Header("Sprites")]
-    public Sprite[] monsterImages;
+    [Header("Safe/Empty View")]
+    public Image safeImageDisplay;
     public Sprite[] emptyImages;
+
+    [Header("Monster View (Sprite Animation)")]
+    public Image monsterImageDisplay;
+    public Sprite[] monsterFrames;
+    public float monsterFrameTime = 0.1f; // Time per frame
+
+    [Header("Transition")]
+    public Sprite[] transitionFrames;
+    public float transitionFrameTime = 0.1f;
+
 
     [Header("Detection")]
     public Transform monster;
@@ -25,8 +32,11 @@ public class CabinetHide : MonoBehaviour
 
     private bool isNearCabinet = false;
     private bool isHiding = false;
-    private bool monsterNearby = false;
-    private bool monsterSeen = false;
+
+    private Coroutine monsterCoroutine;
+
+    private enum CabinetState { Safe, Monster, TransitionToSafe }
+    private CabinetState currentState = CabinetState.Safe;
 
     void Update()
     {
@@ -44,27 +54,112 @@ public class CabinetHide : MonoBehaviour
     {
         isHiding = true;
         PlayerHideState.IsHiding = true;
-        monsterSeen = false;
 
         // Fade to black
         yield return StartCoroutine(Fade(1));
 
+        // Hide player, show cabinet UI
         player.SetActive(false);
         hideImageCanvas.SetActive(true);
 
-        monsterNearby = IsMonsterNearby();
-        if (monsterNearby)
+        // Fade back in
+        yield return StartCoroutine(Fade(0));
+
+        // Start in safe state
+        currentState = CabinetState.Safe;
+        safeImageDisplay.gameObject.SetActive(true);
+        monsterImageDisplay.gameObject.SetActive(false);
+
+        while (isHiding)
         {
-            StartCoroutine(PlayRandomImagesWithReroll());
+            bool monsterNearby = IsMonsterNearby();
+
+            if (monsterNearby)
+            {
+                if (currentState != CabinetState.Monster)
+                {
+                    // Monster just appeared
+                    currentState = CabinetState.Monster;
+
+                    safeImageDisplay.gameObject.SetActive(false);
+                    monsterImageDisplay.gameObject.SetActive(true);
+
+                    if (monsterCoroutine != null)
+                        StopCoroutine(monsterCoroutine);
+
+                    monsterCoroutine = StartCoroutine(PlayMonsterAnimation());
+                }
+            }
+            else
+            {
+                if (currentState == CabinetState.Monster)
+                {
+                    // Monster just left start transition
+                    currentState = CabinetState.TransitionToSafe;
+
+                    if (monsterCoroutine != null)
+                    {
+                        StopCoroutine(monsterCoroutine);
+                        monsterCoroutine = null;
+                    }
+
+                    monsterCoroutine = StartCoroutine(PlayTransitionAnimation());
+                }
+                else if (currentState == CabinetState.TransitionToSafe)
+                {
+                    // Do nothing, wait for transition coroutine
+                }
+                else if (currentState == CabinetState.Safe)
+                {
+                    // Safe image shows if no monster nearby
+                    safeImageDisplay.gameObject.SetActive(true);
+                    monsterImageDisplay.gameObject.SetActive(false);
+                }
+            }
+
+            yield return null;
         }
-        else
+    }
+
+    IEnumerator PlayMonsterAnimation()
+    {
+        // Play monster frames once
+        for (int i = 0; i < monsterFrames.Length; i++)
         {
-            ShowEmptyImage();
+            monsterImageDisplay.sprite = monsterFrames[i];
+            yield return new WaitForSeconds(monsterFrameTime);
         }
 
-        // Fade from black to scene
-        yield return StartCoroutine(Fade(0));
+        // Stay on last frame until monster leaves
+        monsterImageDisplay.sprite = monsterFrames[monsterFrames.Length - 1];
+
+        monsterCoroutine = null;
     }
+
+    IEnumerator PlayTransitionAnimation()
+    {
+        // Play transition frames once
+        for (int i = 0; i < transitionFrames.Length; i++)
+        {
+            monsterImageDisplay.sprite = transitionFrames[i];
+            monsterImageDisplay.gameObject.SetActive(true);
+            safeImageDisplay.gameObject.SetActive(false);
+            yield return new WaitForSeconds(transitionFrameTime);
+        }
+
+        // Transition finished show safe image
+        currentState = CabinetState.Safe;
+        monsterImageDisplay.gameObject.SetActive(false);
+        safeImageDisplay.gameObject.SetActive(true);
+
+        monsterCoroutine = null;
+    }
+
+
+
+
+
+
 
     IEnumerator ExitCabinetSequence()
     {
@@ -72,8 +167,6 @@ public class CabinetHide : MonoBehaviour
         yield return StartCoroutine(Fade(1));
 
         hideImageCanvas.SetActive(false);
-        yield return new WaitForSeconds(transitionDelay);
-
         player.SetActive(true);
         isHiding = false;
         PlayerHideState.IsHiding = false;
@@ -84,27 +177,10 @@ public class CabinetHide : MonoBehaviour
 
     void ShowEmptyImage()
     {
-        hideImageDisplay.sprite = emptyImages[Random.Range(0, emptyImages.Length)];
-    }
+        safeImageDisplay.gameObject.SetActive(true);
+        monsterImageDisplay.gameObject.SetActive(false);
 
-    void ShowMonsterImage()
-    {
-        hideImageDisplay.sprite = monsterImages[Random.Range(0, monsterImages.Length)];
-        monsterSeen = true;
-    }
-
-    IEnumerator PlayRandomImagesWithReroll()
-    {
-        while (!monsterSeen)
-        {
-            bool pickMonster = Random.value > 0.5f;
-            if (pickMonster)
-                ShowMonsterImage();
-            else
-                ShowEmptyImage();
-
-            yield return new WaitForSeconds(imageDisplayTime);
-        }
+        safeImageDisplay.sprite = emptyImages[Random.Range(0, emptyImages.Length)];
     }
 
     bool IsMonsterNearby()

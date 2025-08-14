@@ -14,16 +14,21 @@ public class AnurodelaPatrol : MonoBehaviour
     private bool isWaiting = false;
 
     private bool playerDetected;
+    private bool returningToPatrol = false;
     private Transform player;
     private Animator animator;
+    private BoxCollider2D boxCollider2D;
     private SpriteRenderer spriteRenderer;
     private Rigidbody2D rb;
+
+    [SerializeField] private Transform colliderChild;
 
     void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player").transform;
-        animator = GetComponent<Animator>();
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        animator = GetComponentInChildren<Animator>();
+        boxCollider2D = GetComponentInChildren<BoxCollider2D>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         rb = GetComponent<Rigidbody2D>();
 
         if (patrolPoints.Length > 0)
@@ -42,9 +47,31 @@ public class AnurodelaPatrol : MonoBehaviour
         }
         else if (distance > detectionRange + 1f || playerIsHiding)
         {
-            if (playerDetected) Debug.Log("Enemy: Lost player or player is hiding");
-            playerDetected = false;
+            if (playerDetected)
+            {
+                Debug.Log("Enemy: Lost player or player is hiding");
+                playerDetected = false;
+
+                // Find nearest patrol point and set currentPointIndex
+                if (patrolPoints.Length > 0)
+                {
+                    float minDist = float.MaxValue;
+                    int nearestIndex = 0;
+                    for (int i = 0; i < patrolPoints.Length; i++)
+                    {
+                        float d = Vector2.Distance(transform.position, patrolPoints[i].position);
+                        if (d < minDist)
+                        {
+                            minDist = d;
+                            nearestIndex = i;
+                        }
+                    }
+                    currentPointIndex = nearestIndex;
+                    returningToPatrol = true; // start moving toward nearest patrol point
+                }
+            }
         }
+
     }
 
     void FixedUpdate()
@@ -61,6 +88,15 @@ public class AnurodelaPatrol : MonoBehaviour
         }
     }
 
+    void LateUpdate()
+    {
+        float x = animator.GetFloat("InputX");
+        float y = animator.GetFloat("InputY");
+
+        bool isVertical = Mathf.Abs(y) > Mathf.Abs(x);
+        colliderChild.localRotation = Quaternion.Euler(0, 0, isVertical ? 90f : 0f);
+    }
+
     void Patrol()
     {
         if (patrolPoints.Length == 0) return;
@@ -72,17 +108,25 @@ public class AnurodelaPatrol : MonoBehaviour
             if (waitCounter <= 0)
             {
                 isWaiting = false;
-                currentPointIndex += patrolDirection;
 
-                if (currentPointIndex >= patrolPoints.Length)
+                if (!returningToPatrol) // only increment normally if not returning
                 {
-                    currentPointIndex = patrolPoints.Length - 2;
-                    patrolDirection = -1;
+                    currentPointIndex += patrolDirection;
+
+                    if (currentPointIndex >= patrolPoints.Length)
+                    {
+                        currentPointIndex = patrolPoints.Length - 2;
+                        patrolDirection = -1;
+                    }
+                    else if (currentPointIndex < 0)
+                    {
+                        currentPointIndex = 1;
+                        patrolDirection = 1;
+                    }
                 }
-                else if (currentPointIndex < 0)
+                else
                 {
-                    currentPointIndex = 1;
-                    patrolDirection = 1;
+                    returningToPatrol = false; // reached nearest patrol point, resume normal patrol
                 }
             }
             return;
@@ -97,6 +141,7 @@ public class AnurodelaPatrol : MonoBehaviour
             waitCounter = waitTime;
         }
     }
+
 
     private void MoveTowards(Vector2 target, float moveSpeed)
     {
