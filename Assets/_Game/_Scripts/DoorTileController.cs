@@ -22,59 +22,93 @@ public class DoorTileController : MonoBehaviour
     [Tooltip("IDs of items required to open this door")]
     public List<int> requiredItemIDs = new List<int>();
 
+    public ItemDictionary itemDictionary;
+
     private bool playerNear = false;
     private bool isDoorOpen = false;
 
-    public ItemDictionary itemDictionary;
-
+    // Lifecycle: call initialization
     void Start()
+    {
+        InitializePrompt();
+    }
+
+    // Lifecycle: call input check
+    void Update()
+    {
+        CheckPlayerInput();
+    }
+
+    // Lifecycle: call trigger enter handling
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        HandlePlayerEnter(other);
+    }
+
+    // Lifecycle: call trigger exit handling
+    void OnTriggerExit2D(Collider2D other)
+    {
+        HandlePlayerExit(other);
+    }
+
+    // --------------------- Methods for Lifecycle ---------------------
+
+    // Initialize UI prompt
+    void InitializePrompt()
     {
         if (promptText != null)
             promptText.text = "";
     }
 
-    void Update()
+    // Check for player pressing F to open door
+    void CheckPlayerInput()
     {
         if (playerNear && !isDoorOpen && Input.GetKeyDown(KeyCode.F))
         {
             InventoryController inventory = InventoryController.Instance;
+
             if (inventory != null && HasAllItems(inventory, requiredItemIDs))
             {
                 OpenDoor();
                 RemoveItems(inventory, requiredItemIDs);
-                if (promptText != null) promptText.text = "";
+                ClearPrompt();
             }
             else
             {
-                if (promptText != null)
-                    promptText.text = GetRequiredItemsText();
+                ShowRequiredItemsPrompt();
             }
         }
     }
 
-    void OnTriggerEnter2D(Collider2D other)
+    // Handle player entering trigger
+    void HandlePlayerEnter(Collider2D other)
     {
         if (other.CompareTag("Player") && !isDoorOpen)
         {
             playerNear = true;
-            if (promptText != null) promptText.text = "Press F to open door";
+            ShowPrompt("Press F to open door");
         }
     }
 
-    void OnTriggerExit2D(Collider2D other)
+    // Handle player exiting trigger
+    void HandlePlayerExit(Collider2D other)
     {
         if (other.CompareTag("Player"))
         {
             playerNear = false;
-            if (promptText != null) promptText.text = "";
+            ClearPrompt();
         }
     }
 
+    // --------------------- Door Logic ---------------------
+
+    // Open the door tiles
     void OpenDoor()
     {
         for (int i = 0; i < openDoorTiles.Count; i++)
         {
             Vector3Int tilePos = doorBottomPosition;
+
             if (orientation == DoorOrientation.Vertical)
                 tilePos += new Vector3Int(0, i, 0);
             else
@@ -87,6 +121,7 @@ public class DoorTileController : MonoBehaviour
         isDoorOpen = true;
     }
 
+    // Check if inventory contains all required items
     bool HasAllItems(InventoryController inventory, List<int> itemIDs)
     {
         foreach (int id in itemIDs)
@@ -97,6 +132,7 @@ public class DoorTileController : MonoBehaviour
         return true;
     }
 
+    // Check if inventory contains a single item
     bool HasItem(InventoryController inventory, int itemID)
     {
         foreach (Transform slotTransform in inventory.inventoryPanel.transform)
@@ -112,12 +148,14 @@ public class DoorTileController : MonoBehaviour
         return false;
     }
 
+    // Remove multiple items from inventory
     void RemoveItems(InventoryController inventory, List<int> itemIDs)
     {
         foreach (int id in itemIDs)
             RemoveItem(inventory, id);
     }
 
+    // Remove a single item from inventory
     void RemoveItem(InventoryController inventory, int itemID)
     {
         foreach (Transform slotTransform in inventory.inventoryPanel.transform)
@@ -135,6 +173,28 @@ public class DoorTileController : MonoBehaviour
             }
         }
     }
+
+    // --------------------- UI Prompt ---------------------
+
+    void ShowPrompt(string message)
+    {
+        if (promptText != null)
+            promptText.text = message;
+    }
+
+    void ClearPrompt()
+    {
+        if (promptText != null)
+            promptText.text = "";
+    }
+
+    void ShowRequiredItemsPrompt()
+    {
+        if (promptText != null)
+            promptText.text = GetRequiredItemsText();
+    }
+
+    // --------------------- Utility ---------------------
 
     public bool IsDoorOpen() => isDoorOpen;
 

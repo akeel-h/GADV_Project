@@ -4,9 +4,10 @@ using System.Collections;
 
 public class CabinetHide : MonoBehaviour
 {
+    [Header("Interaction")]
     public KeyCode interactKey = KeyCode.E;
     public GameObject player;
-    public GameObject hideImageCanvas; // Canvas for hiding view
+    public GameObject hideImageCanvas;
 
     [Header("Safe/Empty View")]
     public Image safeImageDisplay;
@@ -39,7 +40,6 @@ public class CabinetHide : MonoBehaviour
 
     private bool isNearCabinet = false;
     public bool isHiding;
-
     [HideInInspector] public bool monsterNearbyInCabinet;
 
     private Coroutine monsterCoroutine;
@@ -48,7 +48,15 @@ public class CabinetHide : MonoBehaviour
     private enum CabinetState { Safe, Monster, TransitionToSafe }
     private CabinetState currentState = CabinetState.Safe;
 
-    void Update()
+    private void Update()
+    {
+        HandleCabinetInteraction();
+    }
+
+    // ---------------- Interaction ----------------
+
+    // Handles pressing interact key to enter/exit cabinet
+    private void HandleCabinetInteraction()
     {
         if (isNearCabinet && !isHiding && Input.GetKeyDown(interactKey))
             StartCoroutine(EnterCabinetSequence());
@@ -56,27 +64,29 @@ public class CabinetHide : MonoBehaviour
             StartCoroutine(ExitCabinetSequence());
     }
 
-    private IEnumerator MonsterSanityRoutine(float sanityPerTick, float tickInterval)
+    private void OnTriggerEnter2D(Collider2D col)
     {
-        while (true)
-        {
-            sanitySystem?.OnMonsterEncounter(sanityPerTick);
-            yield return new WaitForSeconds(tickInterval);
-        }
+        if (col.gameObject == player)
+            isNearCabinet = true;
     }
 
+    private void OnTriggerExit2D(Collider2D col)
+    {
+        if (col.gameObject == player)
+            isNearCabinet = false;
+    }
 
-    IEnumerator EnterCabinetSequence()
+    // ---------------- Enter / Exit ----------------
+
+    private IEnumerator EnterCabinetSequence()
     {
         isHiding = true;
         PlayerHideState.IsHiding = true;
 
+        sanitySystem?.OnStartHiding();
         if (sanitySystem != null)
             sanitySystem.currentHidingCabinet = this;
 
-        sanitySystem?.OnStartHiding();
-
-        // Play enter sound
         if (enterCabinetAudio != null) enterCabinetAudio.Play();
 
         yield return StartCoroutine(Fade(1));
@@ -93,53 +103,16 @@ public class CabinetHide : MonoBehaviour
         while (isHiding)
         {
             monsterNearbyInCabinet = IsMonsterNearby();
-
-            if (monsterNearbyInCabinet && currentState != CabinetState.Monster)
-            {
-                currentState = CabinetState.Monster;
-                safeImageDisplay.gameObject.SetActive(false);
-                monsterImageDisplay.gameObject.SetActive(true);
-
-                if (monsterCoroutine != null) StopCoroutine(monsterCoroutine);
-                monsterCoroutine = StartCoroutine(PlayMonsterAnimation());
-
-                if (monsterSanityCoroutine == null)
-                {
-                    sanitySystem?.StartMonsterSanityGain();
-                }
-
-                // Play monster audio once
-                if (monsterNearbyAudio != null && !monsterNearbyAudio.isPlaying)
-                    monsterNearbyAudio.Play();
-            }
-
-            else if (!monsterNearbyInCabinet && currentState == CabinetState.Monster)
-            {
-                currentState = CabinetState.TransitionToSafe;
-                sanitySystem?.StopMonsterSanityGain();
-
-                monsterCoroutine = StartCoroutine(PlayTransitionAnimation());
-
-                if (monsterSanityCoroutine != null)
-                {
-                    StopCoroutine(monsterSanityCoroutine);
-                    monsterSanityCoroutine = null;
-                }
-            }
-
+            HandleMonsterState();
             yield return null;
         }
     }
 
-
-    IEnumerator ExitCabinetSequence()
+    private IEnumerator ExitCabinetSequence()
     {
         yield return StartCoroutine(Fade(1));
 
-        // Play exit sound
         if (exitCabinetAudio != null) exitCabinetAudio.Play();
-
-        // Stop monster nearby audio if it's playing
         if (monsterNearbyAudio != null && monsterNearbyAudio.isPlaying)
             monsterNearbyAudio.Stop();
 
@@ -152,24 +125,70 @@ public class CabinetHide : MonoBehaviour
         yield return StartCoroutine(Fade(0));
     }
 
+    // ---------------- Monster Handling ----------------
 
-
-
-    IEnumerator PlayMonsterAnimation()
+    private void HandleMonsterState()
     {
-        for (int frameIndex = 0; frameIndex < monsterFrames.Length; frameIndex++)
+        if (monsterNearbyInCabinet && currentState != CabinetState.Monster)
+            StartMonsterEncounter();
+        else if (!monsterNearbyInCabinet && currentState == CabinetState.Monster)
+            StartTransitionToSafe();
+    }
+
+    private void StartMonsterEncounter()
+    {
+        currentState = CabinetState.Monster;
+        safeImageDisplay.gameObject.SetActive(false);
+        monsterImageDisplay.gameObject.SetActive(true);
+
+        if (monsterCoroutine != null) StopCoroutine(monsterCoroutine);
+        monsterCoroutine = StartCoroutine(PlayMonsterAnimation());
+
+        if (monsterSanityCoroutine == null)
         {
-            monsterImageDisplay.sprite = monsterFrames[frameIndex];
+            sanitySystem?.StartMonsterSanityGain();
+        }
+
+        if (monsterNearbyAudio != null && !monsterNearbyAudio.isPlaying)
+            monsterNearbyAudio.Play();
+    }
+
+    private void StartTransitionToSafe()
+    {
+        currentState = CabinetState.TransitionToSafe;
+        sanitySystem?.StopMonsterSanityGain();
+
+        monsterCoroutine = StartCoroutine(PlayTransitionAnimation());
+
+        if (monsterSanityCoroutine != null)
+        {
+            StopCoroutine(monsterSanityCoroutine);
+            monsterSanityCoroutine = null;
+        }
+    }
+
+    public bool IsMonsterNearby()
+    {
+        if (monster == null) return false;
+        float dist = Vector2.Distance(player.transform.position, monster.position);
+        return dist <= monsterDetectRange;
+    }
+
+    // ---------------- Animations ----------------
+
+    private IEnumerator PlayMonsterAnimation()
+    {
+        for (int i = 0; i < monsterFrames.Length; i++)
+        {
+            monsterImageDisplay.sprite = monsterFrames[i];
             yield return new WaitForSeconds(monsterFrameTime);
         }
 
-        // Hold the last frame
         monsterImageDisplay.sprite = monsterFrames[monsterFrames.Length - 1];
         monsterCoroutine = null;
     }
 
-
-    IEnumerator PlayTransitionAnimation()
+    private IEnumerator PlayTransitionAnimation()
     {
         foreach (var frame in transitionFrames)
         {
@@ -182,17 +201,12 @@ public class CabinetHide : MonoBehaviour
         currentState = CabinetState.Safe;
         monsterImageDisplay.gameObject.SetActive(false);
         safeImageDisplay.gameObject.SetActive(true);
-        monsterCoroutine = null;  // <-- make sure this is set
+        monsterCoroutine = null;
     }
 
-    public bool IsMonsterNearby()
-    {
-        if (monster == null) return false;
-        float dist = Vector2.Distance(player.transform.position, monster.position);
-        return dist <= monsterDetectRange;
-    }
+    // ---------------- Fade ----------------
 
-    IEnumerator Fade(float targetAlpha)
+    private IEnumerator Fade(float targetAlpha)
     {
         Color c = fadeImage.color;
         float startAlpha = c.a;
@@ -210,15 +224,14 @@ public class CabinetHide : MonoBehaviour
         fadeImage.color = c;
     }
 
-    void OnTriggerEnter2D(Collider2D col)
-    {
-        if (col.gameObject == player)
-            isNearCabinet = true;
-    }
+    // ---------------- Monster Sanity ----------------
 
-    void OnTriggerExit2D(Collider2D col)
+    private IEnumerator MonsterSanityRoutine(float sanityPerTick, float tickInterval)
     {
-        if (col.gameObject == player)
-            isNearCabinet = false;
+        while (true)
+        {
+            sanitySystem?.OnMonsterEncounter(sanityPerTick);
+            yield return new WaitForSeconds(tickInterval);
+        }
     }
 }

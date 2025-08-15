@@ -6,10 +6,11 @@ using UnityEngine.SceneManagement;
 
 public class MapTransition : MonoBehaviour
 {
+    [Header("Map Settings")]
     [SerializeField] private PolygonCollider2D mapBoundary;
     [SerializeField] private DoorTileController doorController; // optional
     [SerializeField] private Direction direction;
-    [SerializeField] Transform teleportTargetPosition;
+    [SerializeField] private Transform teleportTargetPosition;
 
     [Header("Cutscene Option")]
     [SerializeField] private bool loadCutscene = false;
@@ -17,34 +18,54 @@ public class MapTransition : MonoBehaviour
 
     private CinemachineConfiner confiner;
 
-    private enum Direction { Up, Down, Left, Right, Teleport };
+    private enum Direction { Up, Down, Left, Right, Teleport }
 
     private void Awake()
     {
-        confiner = FindObjectOfType<CinemachineConfiner>();
+        InitializeConfiner();
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
+        HandlePlayerCollision(collision);
+    }
+
+    // Initializes the Cinemachine confiner reference
+    private void InitializeConfiner()
+    {
+        confiner = FindObjectOfType<CinemachineConfiner>();
+    }
+
+    // Handles what happens when the player enters the transition trigger
+    private void HandlePlayerCollision(Collider2D collision)
+    {
         if (!collision.CompareTag("Player"))
             return;
 
-        // If a door exists and it is not open, block transition
+        // If there is a door and it is not open, block transition
         if (doorController != null && !doorController.IsDoorOpen())
             return;
 
+        // Load cutscene if option enabled
         if (loadCutscene)
-        {
             LoadCutscene();
-        }
 
-        confiner.m_BoundingShape2D = mapBoundary;
+        // Update camera confiner and move player
+        UpdateConfiner();
         UpdatePlayerPosition(collision.gameObject);
     }
 
+    // Updates the camera confiner to the new map boundary
+    private void UpdateConfiner()
+    {
+        if (confiner != null)
+            confiner.m_BoundingShape2D = mapBoundary;
+    }
+
+    // Moves the player according to the transition direction
     private void UpdatePlayerPosition(GameObject player)
     {
-        if (direction == Direction.Teleport)
+        if (direction == Direction.Teleport && teleportTargetPosition != null)
         {
             player.transform.position = teleportTargetPosition.position;
             return;
@@ -63,8 +84,12 @@ public class MapTransition : MonoBehaviour
         player.transform.position = newPos;
     }
 
+    // Loads the cutscene scene
     private void LoadCutscene()
     {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+        if (!string.IsNullOrEmpty(cutsceneSceneName))
+            SceneManager.LoadScene(cutsceneSceneName);
+        else
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
     }
 }

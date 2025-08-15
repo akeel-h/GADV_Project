@@ -9,30 +9,28 @@ public class SanitySystem : MonoBehaviour
     public float currentSanity = 0f;
 
     [Header("Passive Sanity Gain Settings")]
-    public float passiveSanityRate = 1f; // sanity per second
-    public float passiveSanityTickInterval = 1f; // interval between gains
+    public float passiveSanityRate = 1f;
+    public float passiveSanityTickInterval = 1f;
 
     [Header("Hiding Sanity Gain Settings")]
-    public float hidingSanityRate = 5f; // sanity per second while hiding
-    public float hidingSanityCooldown = 1f; // check interval
+    public float hidingSanityRate = 5f;
+    public float hidingSanityCooldown = 1f;
 
     [Header("Hiding While Monster Gain Settings")]
-    public float monsterSanityPerTick = 2f;        // How much sanity to add per tick
-    public float monsterSanityTickInterval = 1.5f; // Time between ticks in seconds
+    public float monsterSanityPerTick = 2f;
+    public float monsterSanityTickInterval = 1.5f;
 
     [Header("Chase Sanity Gain")]
-    public float chaseSanityGainRate = 5f; // sanity per second while being chased
+    public float chaseSanityGainRate = 5f;
 
     [Header("High Sanity Death Settings")]
     public float highSanityThreshold = 80f;
-    public float highSanityDuration = 5f; // Seconds before death if above threshold
+    public float highSanityDuration = 5f;
 
     [Header("UI")]
-    public Image sanityBar; // Assign your filled image here
+    public Image sanityBar;
 
-    [HideInInspector] public CabinetHide currentHidingCabinet; // the cabinet player is hiding in
-
-
+    [HideInInspector] public CabinetHide currentHidingCabinet;
 
     private Coroutine highSanityCoroutine;
     private Coroutine hidingSanityCoroutine;
@@ -40,17 +38,30 @@ public class SanitySystem : MonoBehaviour
     private Coroutine passiveSanityCoroutine;
     private bool isDead = false;
 
+    public GameObject player; // Assign in Inspector
+
     void Start()
+    {
+        InitializeSanitySystem();
+    }
+
+    void Update()
+    {
+        HandleSanityUpdate();
+    }
+
+    // Initializes UI and starts passive sanity gain
+    private void InitializeSanitySystem()
     {
         UpdateSanityUI();
         StartPassiveSanityGain();
     }
 
-    void Update()
+    // Handles all per-frame sanity logic
+    private void HandleSanityUpdate()
     {
         currentSanity = Mathf.Clamp(currentSanity, 0f, maxSanity);
 
-        // Instant death at max sanity
         if (currentSanity >= maxSanity && !isDead)
         {
             DieFromStress();
@@ -72,6 +83,7 @@ public class SanitySystem : MonoBehaviour
         UpdateSanityUI();
     }
 
+    // Updates the sanity bar UI
     private void UpdateSanityUI()
     {
         if (sanityBar != null)
@@ -139,7 +151,7 @@ public class SanitySystem : MonoBehaviour
             {
                 if (currentHidingCabinet != null)
                 {
-                    bool monsterNearby = currentHidingCabinet.IsMonsterNearby(); // check if monster is outside but near
+                    bool monsterNearby = currentHidingCabinet.IsMonsterNearby();
                     DieFromStress(monsterNearby: monsterNearby, isHiding: true, cabinet: currentHidingCabinet);
                 }
                 else
@@ -149,11 +161,9 @@ public class SanitySystem : MonoBehaviour
                 yield break;
             }
 
-
             yield return new WaitForSeconds(hidingSanityCooldown);
         }
     }
-
 
     public void StartMonsterSanityGain()
     {
@@ -176,7 +186,6 @@ public class SanitySystem : MonoBehaviour
         {
             IncreaseSanity(monsterSanityPerTick);
 
-            // Optional: death check inside here if you want immediate reaction
             if (currentSanity >= maxSanity && !isDead)
             {
                 CabinetHide cabinet = FindObjectOfType<CabinetHide>();
@@ -184,7 +193,6 @@ public class SanitySystem : MonoBehaviour
                 DieFromStress(monsterNearby: monsterNearby, isHiding: cabinet != null && cabinet.isHiding);
                 yield break;
             }
-
 
             yield return new WaitForSeconds(monsterSanityTickInterval);
         }
@@ -207,26 +215,22 @@ public class SanitySystem : MonoBehaviour
         DieFromStress();
     }
 
-    public GameObject player; // Assign in Inspector
-
     private void DieFromStress(bool monsterNearby = false, bool isHiding = false, CabinetHide cabinet = null)
     {
-        if (isDead) return; // already dead, do nothing
+        if (isDead) return;
 
         isDead = true;
 
-        // If hiding and monster is nearby, play jumpscare
         if (isHiding && cabinet != null && monsterNearby)
         {
             AnurodelaJumpscare jumpscare = cabinet.GetComponent<AnurodelaJumpscare>();
             if (jumpscare != null)
             {
                 jumpscare.PlayJumpscare();
-                return; // stop here, jumpscare handles death after animation
+                return;
             }
         }
 
-        // fallback death
         if (player != null)
         {
             GameController.Instance.PlayerDied(player, "stress");
@@ -238,25 +242,7 @@ public class SanitySystem : MonoBehaviour
         }
     }
 
-
-
-
-
-    // Called when player starts hiding
-    public void OnStartHiding()
-    {
-        StartHidingSanity();
-    }
-
-    // Called when player stops hiding
-    public void OnStopHiding()
-    {
-        StopHidingSanity();
-    }
-
-    // Called when player encounters monster
-    public void OnMonsterEncounter(float sanityIncreaseAmount)
-    {
-        IncreaseSanity(sanityIncreaseAmount);
-    }
+    public void OnStartHiding() => StartHidingSanity();
+    public void OnStopHiding() => StopHidingSanity();
+    public void OnMonsterEncounter(float sanityIncreaseAmount) => IncreaseSanity(sanityIncreaseAmount);
 }

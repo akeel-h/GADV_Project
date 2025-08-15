@@ -2,22 +2,32 @@ using UnityEngine;
 
 public class FootstepPlayer : MonoBehaviour
 {
-    public AudioSource audioSource;  // Assign a footstep audio source here
-    public PlayerMovement player;    // Reference to your PlayerMovement script
-    public float basePitch = 1f;
-    public float sprintPitch = 1.5f;
+    [Header("Audio Settings")]
+    public AudioSource audioSource;  // Footstep audio source
+    public PlayerMovement player;    // Reference to PlayerMovement
+    public float basePitch = 1f;     // Normal walking pitch
+    public float sprintPitch = 1.5f; // Sprinting pitch
 
+    // ---------------- Footstep ----------------
+
+    // Play footstep sound if player is moving
     public void PlayFootstep()
     {
-        if (player != null && player.IsMoving())
-        {
-            // Adjust pitch based on sprinting
-            if (Input.GetKey(KeyCode.LeftShift))
-                audioSource.pitch = sprintPitch;
-            else
-                audioSource.pitch = basePitch;
+        if (player == null || audioSource == null) return;
 
+        if (player.IsMoving())
+        {
+            SetFootstepPitch();
             audioSource.Play();
         }
+    }
+
+    // Adjust audio pitch based on movement type
+    private void SetFootstepPitch()
+    {
+        if (Input.GetKey(KeyCode.LeftShift))
+            audioSource.pitch = sprintPitch;
+        else
+            audioSource.pitch = basePitch;
     }
 }

@@ -1,35 +1,61 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    public float moveSpeed = 2f;
-    public float sprintSpeed = 3f;
-    private Rigidbody2D rb;
-    private Vector2 moveInput;
-    private Animator animator;
+    [Header("Movement Settings")]
+    public float moveSpeed = 2f;    // Normal walking speed
+    public float sprintSpeed = 3f;  // Sprinting speed
 
-    void Start()
+    private Rigidbody2D rb;         // Reference to Rigidbody2D component
+    private Vector2 moveInput;      // Stores current input direction
+    private Animator animator;      // Reference to Animator component
+
+    private void Start()
+    {
+        InitializeComponents();
+    }
+
+    private void Update()
+    {
+        HandleMovementInput();
+        UpdateAnimatorMovement();
+    }
+
+    private void FixedUpdate()
+    {
+        MoveCharacter();
+    }
+
+    // ---------------- Initialization ----------------
+
+    // Grab references to required components
+    private void InitializeComponents()
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponentInChildren<Animator>();
     }
 
-    void Update()
+    // ---------------- Input Handling ----------------
+
+    // Read movement input and normalize
+    private void HandleMovementInput()
     {
         moveInput.x = Input.GetAxisRaw("Horizontal");
         moveInput.y = Input.GetAxisRaw("Vertical");
-
         moveInput.Normalize();
+    }
 
+    // ---------------- Animator ----------------
+
+    // Update animator parameters based on movement input
+    private void UpdateAnimatorMovement()
+    {
         animator.SetFloat("InputX", moveInput.x);
         animator.SetFloat("InputY", moveInput.y);
 
         if (moveInput != Vector2.zero)
         {
             animator.SetBool("isWalking", true);
-
             animator.SetFloat("LastInputX", moveInput.x);
             animator.SetFloat("LastInputY", moveInput.y);
         }
@@ -39,7 +65,10 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    private void FixedUpdate()
+    // ---------------- Movement ----------------
+
+    // Move the character based on input and speed
+    private void MoveCharacter()
     {
         float currentSpeed = moveSpeed;
 
@@ -56,6 +85,9 @@ public class PlayerMovement : MonoBehaviour
         rb.velocity = moveInput * currentSpeed;
     }
 
+    // ---------------- Public Methods ----------------
+
+    // Returns true if the player is currently moving
     public bool IsMoving()
     {
         return moveInput != Vector2.zero;

@@ -2,11 +2,19 @@ using UnityEngine;
 
 public class AudioListenerHolder : MonoBehaviour
 {
-    public Transform player;
+    public Transform player; // Reference to the player transform
 
-    void LateUpdate()
+    private void LateUpdate()
     {
-        if (player != null)
-            transform.position = player.position;
+        FollowPlayer();
+    }
+
+    // ---------------- Audio Listener Follow ----------------
+
+    // Move the audio listener to match the player's position
+    private void FollowPlayer()
+    {
+        if (player == null) return;
+        transform.position = player.position;
     }
 }

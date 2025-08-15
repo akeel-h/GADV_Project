@@ -6,25 +6,31 @@ using UnityEngine.UI;
 
 public class CutsceneController : MonoBehaviour
 {
-    public TMP_Text dialogueText;
-    public string[] messages;
+    [Header("UI Elements")]
+    public TMP_Text dialogueText;        // Text field to display dialogue
+    public Image fadeImage;              // Image for fade effect
 
-    public float typeSpeed = 0.05f;
-    private int currentMessage = 0;
-    private bool typing = false;
+    [Header("Dialogue Settings")]
+    public string[] messages;            // Array of messages to display
+    public float typeSpeed = 0.05f;      // Time between each character typed
 
-    public Image fadeImage; 
-    public float fadeDuration = 1f;
+    [Header("Scene Settings")]
+    public bool loadMainMenu;            // Should load main menu after cutscene
+    public float fadeDuration = 1f;      // Duration of fade effect
 
-    public bool loadMainMenu;
+    [Header("Audio")]
+    public AudioSource typingAudio;      // Typing sound effect
 
-    public AudioSource typingAudio; // assign your typing sound here in the inspector
+    private int currentMessage = 0;      // Index of current message
+    private bool typing = false;         // Is currently typing a message
 
     private void Start()
     {
+        // Begin the cutscene sequence
         StartCoroutine(ShowMessages());
     }
 
+    // Coroutine to display messages with typewriter effect
     private IEnumerator ShowMessages()
     {
         while (currentMessage < messages.Length)
@@ -34,7 +40,7 @@ public class CutsceneController : MonoBehaviour
 
             string message = messages[currentMessage];
 
-            // Last message in red
+            // Last message in red, others in white
             dialogueText.color = (currentMessage == messages.Length - 1) ? Color.red : Color.white;
 
             // Typewriter effect
@@ -42,7 +48,6 @@ public class CutsceneController : MonoBehaviour
             {
                 dialogueText.text += message[i];
 
-                // Start playing typing audio if it's not already playing
                 if (!typingAudio.isPlaying)
                     typingAudio.Play();
 
@@ -56,23 +61,19 @@ public class CutsceneController : MonoBehaviour
                 yield return new WaitForSeconds(typeSpeed);
             }
 
-            // Stop typing audio once the message is fully displayed
             if (typingAudio.isPlaying)
                 typingAudio.Stop();
 
-
             typing = false;
 
-            // Wait until the player clicks to continue
-            // Skip the first click if it already finished the typing
+            // Wait for player click to continue
             bool clicked = false;
             while (!clicked)
             {
                 if (Input.GetMouseButtonDown(0))
                 {
                     clicked = true;
-                    // Wait one frame to avoid double-detection of the same click
-                    yield return null;
+                    yield return null; // Skip one frame to avoid double click
                 }
                 else
                 {
@@ -83,17 +84,17 @@ public class CutsceneController : MonoBehaviour
             currentMessage++;
         }
 
-        // Fade to black or load next scene after last message
+        // Fade and load next scene after last message
         StartCoroutine(FadeAndLoadNextScene());
     }
 
-
-
+    // Coroutine to fade screen and load next scene
     private IEnumerator FadeAndLoadNextScene()
     {
-        // Fade from transparent to black
         float timer = 0f;
         Color color = fadeImage.color;
+
+        // Fade from transparent to black
         while (timer < fadeDuration)
         {
             timer += Time.deltaTime;
@@ -102,20 +103,14 @@ public class CutsceneController : MonoBehaviour
             yield return null;
         }
 
-        // Make sure fully black
+        // Ensure fully black
         color.a = 1f;
         fadeImage.color = color;
 
         // Load either main menu or next scene
         if (loadMainMenu)
-        {
-            SceneManager.LoadScene(0); // assuming build index 0 = main menu
-        }
+            SceneManager.LoadScene(0); // Build index 0 = main menu
         else
-        {
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
-        }
     }
-
-
 }

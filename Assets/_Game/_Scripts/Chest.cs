@@ -12,15 +12,69 @@ public class Chest : MonoBehaviour, IInteractable
     public ItemDictionary itemDictionary;
 
     [Header("Optional Required Item")]
-    public bool requiresItem = false;             
-    public int requiredItemID = 0;                
+    public bool requiresItem = false;
+    public int requiredItemID = 0;
     public TextMeshProUGUI promptText;
 
+    // ---------------- IInteractable ----------------
 
+    // Can the player interact with this chest?
     public bool CanInteract()
     {
         return !IsOpened;
     }
+
+    // Called when player interacts with the chest
+    public void Interact()
+    {
+        if (IsOpened) return;
+
+        if (requiresItem && !PlayerHasRequiredItem())
+        {
+            ShowRequiredItemPrompt();
+            return;
+        }
+
+        OpenChest();
+    }
+
+    // ---------------- Unity Lifecycle ----------------
+
+    private void Start()
+    {
+        InitializeChest();
+    }
+
+    // ---------------- Chest Logic ----------------
+
+    private void InitializeChest()
+    {
+        ChestID ??= GlobalHelper.GenerateUniqueID(gameObject);
+    }
+
+    private void OpenChest()
+    {
+        SetOpened(true);
+        ClearPrompt();
+
+        if (itemPrefab != null)
+        {
+            // Spawn item slightly below chest
+            Instantiate(itemPrefab, transform.position + Vector3.down, Quaternion.identity);
+        }
+    }
+
+    public void SetOpened(bool opened)
+    {
+        IsOpened = opened;
+
+        if (IsOpened)
+        {
+            GetComponent<SpriteRenderer>().sprite = openedSprite;
+        }
+    }
+
+    // ---------------- Player Item Requirement ----------------
 
     private bool PlayerHasRequiredItem()
     {
@@ -40,87 +94,39 @@ public class Chest : MonoBehaviour, IInteractable
         return false;
     }
 
-
-
-    public void Interact()
+    private void ShowRequiredItemPrompt()
     {
-        if (IsOpened) return;
+        if (promptText == null) return;
 
-        if (requiresItem && !PlayerHasRequiredItem())
+        string itemName = "Required Item";
+
+        if (itemDictionary != null)
         {
-            if (promptText != null)
-            {
-                GameObject prefab = itemDictionary.GetItemPrefab(requiredItemID);
-                string itemName = prefab != null ? prefab.name : "Required Item";
-                promptText.text = $"You need {itemName} to open this chest!";
-            }
-            return;
+            GameObject prefab = itemDictionary.GetItemPrefab(requiredItemID);
+            if (prefab != null) itemName = prefab.name;
         }
 
-        OpenChest();
+        promptText.text = $"You need {itemName} to open this chest!";
     }
 
-
-
-    // Start is called before the first frame update
-    void Start()
+    private void ClearPrompt()
     {
-        ChestID ??= GlobalHelper.GenerateUniqueID(gameObject);
-    }
-
-    private void OpenChest()
-    {
-        SetOpened(true);
-
         if (promptText != null)
             promptText.text = "";
-
-        if (itemPrefab)
-        {
-            Instantiate(itemPrefab, transform.position + Vector3.down, Quaternion.identity);
-        }
     }
 
-
-    public void SetOpened(bool opened)
-    {
-        IsOpened = opened;
-        if (IsOpened)
-        {
-            GetComponent<SpriteRenderer>().sprite = openedSprite;
-        }
-    }
+    // ---------------- Player Proximity ----------------
 
     public void OnPlayerEnter()
     {
-        if (!IsOpened)
+        if (!IsOpened && requiresItem && !PlayerHasRequiredItem())
         {
-            if (requiresItem && !PlayerHasRequiredItem())
-            {
-                if (promptText != null)
-                {
-                    string itemName = "Required Item";
-
-                    // Only try to get prefab name if itemDictionary exists
-                    if (itemDictionary != null)
-                    {
-                        GameObject prefab = itemDictionary.GetItemPrefab(requiredItemID);
-                        if (prefab != null) itemName = prefab.name;
-                    }
-
-                    promptText.text = $"You need {itemName} to open this chest!";
-                }
-                return;
-            }
-
+            ShowRequiredItemPrompt();
         }
     }
 
-
     public void OnPlayerExit()
     {
-        if (promptText != null)
-            promptText.text = "";
+        ClearPrompt();
     }
-
 }
