@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Cinemachine;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class MapTransition : MonoBehaviour
 {
@@ -9,6 +10,10 @@ public class MapTransition : MonoBehaviour
     [SerializeField] private DoorTileController doorController; // optional
     [SerializeField] private Direction direction;
     [SerializeField] Transform teleportTargetPosition;
+
+    [Header("Cutscene Option")]
+    [SerializeField] private bool loadCutscene = false;
+    [SerializeField] private string cutsceneSceneName; // name of cutscene scene to load
 
     private CinemachineConfiner confiner;
 
@@ -28,18 +33,23 @@ public class MapTransition : MonoBehaviour
         if (doorController != null && !doorController.IsDoorOpen())
             return;
 
+        if (loadCutscene)
+        {
+            LoadCutscene();
+        }
+
         confiner.m_BoundingShape2D = mapBoundary;
         UpdatePlayerPosition(collision.gameObject);
     }
 
     private void UpdatePlayerPosition(GameObject player)
     {
-        if(direction == Direction.Teleport)
+        if (direction == Direction.Teleport)
         {
             player.transform.position = teleportTargetPosition.position;
-
             return;
         }
+
         Vector3 newPos = player.transform.position;
 
         switch (direction)
@@ -51,5 +61,10 @@ public class MapTransition : MonoBehaviour
         }
 
         player.transform.position = newPos;
+    }
+
+    private void LoadCutscene()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
     }
 }

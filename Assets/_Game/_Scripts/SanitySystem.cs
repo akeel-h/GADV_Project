@@ -30,6 +30,10 @@ public class SanitySystem : MonoBehaviour
     [Header("UI")]
     public Image sanityBar; // Assign your filled image here
 
+    [HideInInspector] public CabinetHide currentHidingCabinet; // the cabinet player is hiding in
+
+
+
     private Coroutine highSanityCoroutine;
     private Coroutine hidingSanityCoroutine;
     private Coroutine monsterSanityCoroutine;
@@ -131,34 +135,25 @@ public class SanitySystem : MonoBehaviour
         {
             IncreaseSanity(hidingSanityRate * hidingSanityCooldown);
 
-            // Instant death at max sanity
             if (currentSanity >= maxSanity && !isDead)
             {
-                DieFromStress();
+                if (currentHidingCabinet != null)
+                {
+                    bool monsterNearby = currentHidingCabinet.IsMonsterNearby(); // check if monster is outside but near
+                    DieFromStress(monsterNearby: monsterNearby, isHiding: true, cabinet: currentHidingCabinet);
+                }
+                else
+                {
+                    DieFromStress();
+                }
                 yield break;
             }
 
-            // High sanity death check while hiding
-            if (currentSanity >= highSanityThreshold && !isDead)
-            {
-                float timer = 0f;
-                while (timer < highSanityDuration)
-                {
-                    timer += Time.deltaTime;
-                    if (currentSanity < highSanityThreshold) break;
-                    yield return null;
-                }
-
-                if (currentSanity >= highSanityThreshold && !isDead)
-                {
-                    DieFromStress();
-                    yield break;
-                }
-            }
 
             yield return new WaitForSeconds(hidingSanityCooldown);
         }
     }
+
 
     public void StartMonsterSanityGain()
     {
@@ -184,9 +179,12 @@ public class SanitySystem : MonoBehaviour
             // Optional: death check inside here if you want immediate reaction
             if (currentSanity >= maxSanity && !isDead)
             {
-                DieFromStress();
+                CabinetHide cabinet = FindObjectOfType<CabinetHide>();
+                bool monsterNearby = cabinet != null && cabinet.monsterNearbyInCabinet;
+                DieFromStress(monsterNearby: monsterNearby, isHiding: cabinet != null && cabinet.isHiding);
                 yield break;
             }
+
 
             yield return new WaitForSeconds(monsterSanityTickInterval);
         }
@@ -211,11 +209,24 @@ public class SanitySystem : MonoBehaviour
 
     public GameObject player; // Assign in Inspector
 
-    private void DieFromStress()
+    private void DieFromStress(bool monsterNearby = false, bool isHiding = false, CabinetHide cabinet = null)
     {
-        if (isDead) return;
+        if (isDead) return; // already dead, do nothing
+
         isDead = true;
 
+        // If hiding and monster is nearby, play jumpscare
+        if (isHiding && cabinet != null && monsterNearby)
+        {
+            AnurodelaJumpscare jumpscare = cabinet.GetComponent<AnurodelaJumpscare>();
+            if (jumpscare != null)
+            {
+                jumpscare.PlayJumpscare();
+                return; // stop here, jumpscare handles death after animation
+            }
+        }
+
+        // fallback death
         if (player != null)
         {
             GameController.Instance.PlayerDied(player, "stress");
@@ -226,6 +237,7 @@ public class SanitySystem : MonoBehaviour
             Debug.LogError("[SanitySystem] Player reference is missing!");
         }
     }
+
 
 
 

@@ -32,8 +32,16 @@ public class CabinetHide : MonoBehaviour
     [Header("Sanity System")]
     public SanitySystem sanitySystem;
 
+    [Header("Audio")]
+    public AudioSource enterCabinetAudio;
+    public AudioSource exitCabinetAudio;
+    public AudioSource monsterNearbyAudio;
+
     private bool isNearCabinet = false;
-    private bool isHiding = false;
+    public bool isHiding;
+
+    [HideInInspector] public bool monsterNearbyInCabinet;
+
     private Coroutine monsterCoroutine;
     private Coroutine monsterSanityCoroutine;
 
@@ -61,10 +69,16 @@ public class CabinetHide : MonoBehaviour
     IEnumerator EnterCabinetSequence()
     {
         isHiding = true;
-        PlayerHideState.IsHiding = true;  // <-- set hiding state
+        PlayerHideState.IsHiding = true;
+
+        if (sanitySystem != null)
+            sanitySystem.currentHidingCabinet = this;
+
         sanitySystem?.OnStartHiding();
 
-        // Fade to black
+        // Play enter sound
+        if (enterCabinetAudio != null) enterCabinetAudio.Play();
+
         yield return StartCoroutine(Fade(1));
 
         player.SetActive(false);
@@ -78,44 +92,38 @@ public class CabinetHide : MonoBehaviour
 
         while (isHiding)
         {
-            bool monsterNearby = IsMonsterNearby();
+            monsterNearbyInCabinet = IsMonsterNearby();
 
-            if (monsterNearby)
+            if (monsterNearbyInCabinet && currentState != CabinetState.Monster)
             {
-                if (currentState != CabinetState.Monster)
+                currentState = CabinetState.Monster;
+                safeImageDisplay.gameObject.SetActive(false);
+                monsterImageDisplay.gameObject.SetActive(true);
+
+                if (monsterCoroutine != null) StopCoroutine(monsterCoroutine);
+                monsterCoroutine = StartCoroutine(PlayMonsterAnimation());
+
+                if (monsterSanityCoroutine == null)
                 {
-                    currentState = CabinetState.Monster;
-
-                    safeImageDisplay.gameObject.SetActive(false);
-                    monsterImageDisplay.gameObject.SetActive(true);
-
-                    if (monsterCoroutine != null)
-                        StopCoroutine(monsterCoroutine);
-
-                    monsterCoroutine = StartCoroutine(PlayMonsterAnimation());
-
-                    if (monsterSanityCoroutine == null)
-                    {
-                        sanitySystem?.StartMonsterSanityGain();
-                    }
-
+                    sanitySystem?.StartMonsterSanityGain();
                 }
+
+                // Play monster audio once
+                if (monsterNearbyAudio != null && !monsterNearbyAudio.isPlaying)
+                    monsterNearbyAudio.Play();
             }
-            else
+
+            else if (!monsterNearbyInCabinet && currentState == CabinetState.Monster)
             {
-                if (currentState == CabinetState.Monster)
+                currentState = CabinetState.TransitionToSafe;
+                sanitySystem?.StopMonsterSanityGain();
+
+                monsterCoroutine = StartCoroutine(PlayTransitionAnimation());
+
+                if (monsterSanityCoroutine != null)
                 {
-                    currentState = CabinetState.TransitionToSafe;
-
-                    sanitySystem?.StopMonsterSanityGain();
-
-                    monsterCoroutine = StartCoroutine(PlayTransitionAnimation());
-
-                    if (monsterSanityCoroutine != null)
-                    {
-                        StopCoroutine(monsterSanityCoroutine);
-                        monsterSanityCoroutine = null;
-                    }
+                    StopCoroutine(monsterSanityCoroutine);
+                    monsterSanityCoroutine = null;
                 }
             }
 
@@ -123,18 +131,28 @@ public class CabinetHide : MonoBehaviour
         }
     }
 
+
     IEnumerator ExitCabinetSequence()
     {
         yield return StartCoroutine(Fade(1));
 
+        // Play exit sound
+        if (exitCabinetAudio != null) exitCabinetAudio.Play();
+
+        // Stop monster nearby audio if it's playing
+        if (monsterNearbyAudio != null && monsterNearbyAudio.isPlaying)
+            monsterNearbyAudio.Stop();
+
         hideImageCanvas.SetActive(false);
         player.SetActive(true);
         isHiding = false;
-        PlayerHideState.IsHiding = false;  // <-- unset hiding state
+        PlayerHideState.IsHiding = false;
         sanitySystem?.OnStopHiding();
 
         yield return StartCoroutine(Fade(0));
     }
+
+
 
 
     IEnumerator PlayMonsterAnimation()
@@ -167,7 +185,7 @@ public class CabinetHide : MonoBehaviour
         monsterCoroutine = null;  // <-- make sure this is set
     }
 
-    bool IsMonsterNearby()
+    public bool IsMonsterNearby()
     {
         if (monster == null) return false;
         float dist = Vector2.Distance(player.transform.position, monster.position);

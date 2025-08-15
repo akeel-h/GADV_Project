@@ -14,8 +14,11 @@ public class CutsceneController : MonoBehaviour
     private bool typing = false;
 
     public Image fadeImage; 
-    public float fadeDuration = 1f;        
+    public float fadeDuration = 1f;
 
+    public bool loadMainMenu;
+
+    public AudioSource typingAudio; // assign your typing sound here in the inspector
 
     private void Start()
     {
@@ -39,6 +42,10 @@ public class CutsceneController : MonoBehaviour
             {
                 dialogueText.text += message[i];
 
+                // Start playing typing audio if it's not already playing
+                if (!typingAudio.isPlaying)
+                    typingAudio.Play();
+
                 // If player clicks, show full message instantly
                 if (Input.GetMouseButtonDown(0))
                 {
@@ -48,6 +55,11 @@ public class CutsceneController : MonoBehaviour
 
                 yield return new WaitForSeconds(typeSpeed);
             }
+
+            // Stop typing audio once the message is fully displayed
+            if (typingAudio.isPlaying)
+                typingAudio.Stop();
+
 
             typing = false;
 
@@ -94,8 +106,16 @@ public class CutsceneController : MonoBehaviour
         color.a = 1f;
         fadeImage.color = color;
 
-        // Load next scene
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+        // Load either main menu or next scene
+        if (loadMainMenu)
+        {
+            SceneManager.LoadScene(0); // assuming build index 0 = main menu
+        }
+        else
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
+        }
     }
+
 
 }

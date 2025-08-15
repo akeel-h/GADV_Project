@@ -22,7 +22,7 @@ public class GameController : MonoBehaviour
         }
     }
 
-    public void PlayerDied(GameObject player, string reason = "default")
+    public void PlayerDied(GameObject player, string reason = "default", AudioSource jumpscareAudio = null)
     {
         // Show the death screen
         deathScreen.SetActive(true);
@@ -44,9 +44,28 @@ public class GameController : MonoBehaviour
             }
         }
 
+        Time.timeScale = 0f;
+
         // Disable player
         player.SetActive(false);
+
+        // Stop all other audio except jumpscare
+        AudioSource[] allAudioSources = FindObjectsOfType<AudioSource>();
+        foreach (AudioSource audioSrc in allAudioSources)
+        {
+            if (audioSrc != jumpscareAudio)
+            {
+                audioSrc.Stop();
+            }
+        }
+
+        // Optionally, if jumpscareAudio is set, ensure it plays even if Time.timeScale is 0
+        if (jumpscareAudio != null && !jumpscareAudio.isPlaying)
+        {
+            jumpscareAudio.Play();
+        }
     }
+
 
 
     public void RestartScene()

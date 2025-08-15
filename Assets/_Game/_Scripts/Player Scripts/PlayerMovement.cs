@@ -9,14 +9,13 @@ public class PlayerMovement : MonoBehaviour
     private Rigidbody2D rb;
     private Vector2 moveInput;
     private Animator animator;
-    // Start is called before the first frame update
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponentInChildren<Animator>();
     }
 
-    // Update is called once per frame
     void Update()
     {
         moveInput.x = Input.GetAxisRaw("Horizontal");
@@ -54,6 +53,11 @@ public class PlayerMovement : MonoBehaviour
             animator.speed = 1f;
         }
 
-            rb.velocity = moveInput * currentSpeed;
+        rb.velocity = moveInput * currentSpeed;
+    }
+
+    public bool IsMoving()
+    {
+        return moveInput != Vector2.zero;
     }
 }
