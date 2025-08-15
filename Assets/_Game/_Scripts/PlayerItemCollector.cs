@@ -31,24 +31,37 @@ public class PlayerItemCollector : MonoBehaviour
             Item item = collision.GetComponent<Item>();
             if (item != null)
             {
-                bool itemAdded = inventoryController.AddItem(collision.gameObject);
-
-                if (itemAdded)
+                // Apply sanity reduction if item has a sanity effect
+                if (sanitySystem != null && item.sanityReduction > 0f)
                 {
-                    item.Pickup();
-
-                    // Apply sanity reduction if item has a sanity effect
-                    if (sanitySystem != null && item.sanityReduction > 0f)
-                    {
-                        sanitySystem.ReduceSanity(item.sanityReduction);
-                        Debug.Log($"Sanity reduced by {item.sanityReduction} from {collision.name}");
-                    }
-
-                    Destroy(collision.gameObject);
-                    Debug.Log("Pickup triggered by " + collision.name + " at " + Time.time);
+                    sanitySystem.ReduceSanity(item.sanityReduction);
+                    Debug.Log($"Sanity reduced by {item.sanityReduction} from {collision.name}");
                 }
+
+                // Only add to inventory if allowed
+                if (item.addToInventory)
+                {
+                    bool itemAdded = inventoryController.AddItem(collision.gameObject);
+
+                    if (itemAdded)
+                    {
+                        item.Pickup();
+                    }
+                    else
+                    {
+                        Debug.Log("Inventory full, item not added: " + collision.name);
+                    }
+                }
+                else
+                {
+                    item.Pickup(); // still show pickup UI
+                }
+
+                Destroy(collision.gameObject); // remove item from the scene
+                Debug.Log("Pickup triggered by " + collision.name + " at " + Time.time);
             }
         }
+
 
         if (collision.CompareTag("Collectible"))
         {

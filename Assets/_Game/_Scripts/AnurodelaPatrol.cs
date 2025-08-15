@@ -44,7 +44,16 @@ public class AnurodelaPatrol : MonoBehaviour
         {
             if (!playerDetected) Debug.Log("Enemy: Player detected!");
             playerDetected = true;
+
+            // Get the SanitySystem component from the player
+            SanitySystem playerSanity = player.GetComponent<SanitySystem>();
+            if (playerSanity != null)
+            {
+                // Use the chaseSanityGainRate from the SanitySystem
+                playerSanity.IncreaseSanity(playerSanity.chaseSanityGainRate * Time.deltaTime);
+            }
         }
+
         else if (distance > detectionRange + 1f || playerIsHiding)
         {
             if (playerDetected)

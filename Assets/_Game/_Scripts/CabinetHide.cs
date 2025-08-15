@@ -95,7 +95,10 @@ public class CabinetHide : MonoBehaviour
                     monsterCoroutine = StartCoroutine(PlayMonsterAnimation());
 
                     if (monsterSanityCoroutine == null)
-                        monsterSanityCoroutine = StartCoroutine(MonsterSanityRoutine(5f, 1f));
+                    {
+                        sanitySystem?.StartMonsterSanityGain();
+                    }
+
                 }
             }
             else
@@ -104,8 +107,7 @@ public class CabinetHide : MonoBehaviour
                 {
                     currentState = CabinetState.TransitionToSafe;
 
-                    if (monsterCoroutine != null)
-                        StopCoroutine(monsterCoroutine);
+                    sanitySystem?.StopMonsterSanityGain();
 
                     monsterCoroutine = StartCoroutine(PlayTransitionAnimation());
 

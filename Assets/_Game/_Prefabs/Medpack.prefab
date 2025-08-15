@@ -191,5 +191,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ID: 5
-  Name: Lockpick
+  Name: Medpack
   sanityReduction: 10
